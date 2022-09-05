@@ -5,13 +5,14 @@
 #include <stdio.h>
 #include <string.h>
 
+ssize_t output(int fildes, char *s, int strerr);
 
 char *logged_strdup(char *str)
 {
 	char *line_dup = strdup(str);
 
 	if (!line_dup)
-		fprintf(stderr, "error: %s\n", strerror(errno));
+		output(STDERR, "error: ", 2);
 
 	return line_dup;
 }
@@ -24,7 +25,7 @@ int tokenize(char *str, char **argv, char *delims, int max_tokens)
 			argv[argc] != NULL;
 			argv[argc] = strtok(NULL, delims)) {
 		if (++argc >= max_tokens) {
-			fprintf(stderr, "error: too many tokens\n");
+			output(STDERR, "error: too many tokens\n", 0);
 			return -1;
 		}
 	}
@@ -113,7 +114,7 @@ int check_pipeline(char *input)
 	int num_delim = get_num_delim(input, *PIPE_CALL_DEL);
 
 	if (num_toks < 1 || num_toks != num_delim + 1) {
-		fprintf(stderr, "error: invalid pipeline\n");
+		output(STDERR, "error: invalid pipeline\n", 0);
 		return 0;
 	}
 

@@ -9,6 +9,7 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <sys/mman.h>
 
 #include "shell.h"
 
@@ -17,23 +18,71 @@
 
 /* Pointer to the buffer which contains input string */
 char *input_line;
+size_t len;
 
 static void process_line(char *line, char add_to_history);
 
 static void release_all_resources(void)
 {
-	free(input_line);
+	if (munmap(input_line, len) < 0)
+		exit(1);
+}
+
+ssize_t output(int fildes, char *s, int strerr) {
+	ssize_t r;
+	char tbuf[100], *e, *p, *n = "\n";
+
+	p = s;
+	memset(tbuf, 0, 100);
+	if (strerr) {
+		p = tbuf;
+		strncpy(tbuf, s, strlen(s));
+		e = strerror(errno);
+		strncat(tbuf, e, strlen(e));
+		strncat(tbuf, n, strlen(n));
+	}
+	if ((r = write(fildes, p, strlen(p))) < 0) {
+		if (strerr != 2)
+			release_all_resources();
+		exit(1);
+	}
+
+	return r;
+}
+
+static ssize_t input(char **s, size_t *l, int fildes) {
+	ssize_t r;
+	size_t dl = 4096, rl;
+	char *nmp;
+
+	if (!*s) {
+		*l = dl;
+		*s = mmap(NULL, *l, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+		if (((long) *s) < 0) {
+			output(STDERR, "mmap failed: ", 1);
+			release_all_resources();
+			exit(1);
+		}
+	}
+	nmp = *s;
+	rl = *l;
+	memset(*s, 0, *l);
+
+	if ((r = read(fildes, nmp, rl)) < 0)
+		output(STDERR, "read failed: ", 1);
+
+	return r;
 }
 
 static int handle_cd_cmd(int argc, char **argv)
 {
 	if (argc != 2) {
-		fprintf(stderr, "error: expecting one argument\n");
+		output(STDERR, "error: expecting one argument\n", 0);
 		return -1;
 	}
 
 	if (chdir(argv[1]) < 0) {
-		fprintf(stderr, "error: %s\n", strerror(errno));
+		output(STDERR, "error: ", 1);
 		return -1;
 	}
 
@@ -116,9 +165,7 @@ int handle_executable(char *line)
 		execv(argv[0], argv);
 
 		/* Should not be reached. */
-		fprintf(stderr, "error: child: %s.", strerror(errno));
-
-		fprintf(stderr, "\n");
+		output(STDERR, "error: child: ", 1);
 
 		release_all_resources();
 		/* to differentiate from the error of the command itself */
@@ -128,7 +175,7 @@ int handle_executable(char *line)
 	return 0;
 
 error:
-	fprintf(stderr, "error: %s\n", strerror(errno));
+	output(STDERR, "error: ", 1);
 	return -1;
 }
 
@@ -184,7 +231,7 @@ cleanup:
 			 */
 			if (errno == ECHILD)
 				break;
-			fprintf(stderr, "error: %s\n", strerror(errno));
+			output(STDERR, "error: ", 1);
 			//all_valid = 0;
 		}
 	}
@@ -192,8 +239,7 @@ cleanup:
 
 static inline void print_prompt(void)
 {
-	fprintf(stderr, "$");
-	fflush(stderr);
+	output(STDERR, "$", 0);
 }
 
 /*
@@ -208,13 +254,14 @@ static void handle_control_c(int unused)
 int main(int argc, char **argv)
 {
 	ssize_t n = 0;
-	size_t len = 0;
+	
+	len = 0;
 
 	print_prompt();
 
 	signal(SIGINT, handle_control_c);
 
-	while ((n = getline(&input_line, &len, stdin)) > 0) {
+	while ((n = input(&input_line, &len, STDIN)) > 0) {
 		if (n > 1) {
 			/* Remove newline character */
 			input_line[n - 1] = '\0';
@@ -224,7 +271,7 @@ int main(int argc, char **argv)
 	}
 
 	if (n < 0 && !feof(stdin))
-		fprintf(stderr, "error: %s\n", strerror(errno));
+		output(STDERR, "error: ", 1);
 
 	release_all_resources();
 

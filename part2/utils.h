@@ -2,6 +2,8 @@
 #define _UTILS_H_
 
 #define PIPE_CALL_DEL "|"
+#define STDIN 0
+#define STDERR 2
 
 /*
  * Attempts to copy a string and logs if strdup fails.
