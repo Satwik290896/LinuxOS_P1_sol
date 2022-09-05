@@ -1,0 +1,86 @@
+Written Solutions
+
+======================================1.13======================================
+The issue of resource utilization shows up in different forms in different
+types of operating systems. List what resources must be managed
+carefully in the following settings:
+
+Mainframes / minicomputer systems:
+memory and CPU, storage, network bandwidth
+
+Workstations:
+memory and CPU
+
+Mobile computers:
+power consumption, memory
+
+
+======================================1.19======================================
+What is the purpose of interrupts? How does an interrupt differ from a trap? 
+Can traps be generated intentionally by a user program? If so, for what purpose?
+
+Events are signaled by an interrupt. It allows for a change in the flow of what 
+is currently running and yields control back to the Operating System. Hardware
+interrupts happen asynchronously since they are created by the physical 
+hardware. These interrupts are then handled in between instructions.
+There are several common causes for hardware interrupts, but often it is due 
+to completion of some hardware service (reading from disk), from user input 
+(keyboard or mouse), and a timer to return control back to the Operating 
+System. 
+
+A trap can be thought of loosely as a the software equivalent of a hardware 
+interrupt. One difference between the two is that a trap occurs synchronously 
+as it is created by an instruction. Traps can be caused as a result of an error. 
+(Divide by zero, invalid memory address, dereferencing a null pointer, etc) 
+There are also traps that can be intentionally initiated by the user to request 
+some privileged action to be taken by the Operating System. These are called 
+System Calls. For example: (Reading, and Writing from/to a file, Using Fork, 
+Waiting for a child process, and many more.)
+
+======================================1.21======================================
+Some computer systems do not provide a privileged mode of operation in hardware.
+Is it possible to construct a secure operating system for these computer systems?
+Give arguments both that it is and that it is not possible.
+
+Modern systems make use of hardware assistance to securely allow the execution
+of arbitrary user machine code in an unprivileged mode of operation. Without
+this hardware support, a secure operating system would essentially need to act
+as an interpreter for user programs, s.t. no user machine code is ever executed
+directly on the CPU. This way, it could perform any necessary safety measures
+before executing a given instruction in software.
+	
+While theoretically possible, the performance overhead involved in interpreting
+and executing every user instruction in software renders this approach
+practically infeasible.
+
+======================================2.13======================================
+Describe three general methods for passing parameters to the operating system. 
+	 
+	1. Pass parameters in registers (has a set max number of parameters) 
+	2. The program stores the parameters in memory and use a register to pass a
+  pointer to the starting address of the parameter block. (allows for a variable
+  number of parameters) 
+	3. Program pushes parameters onto a stack where the operating system can pop
+  them off. (allows for a variable number of parameters)
+
+======================================2.21======================================
+What is the main advantage of the microkernel approach to system design? How do
+user programs and system services interact in a microkernel architecture? What
+are the disadvantages of using the microkernel approach?
+
+Advantages of the microkernel approach
+- It is easier to add to the OS because all it takes is the modification or
+addition of a userspace program.
+- Most services run in userspace, which provides greater security (most actions
+are not completed in kernel mode), and greater reliability on the whole (the
+failure of one userspace module does not mean the failure of the entire kernel).
+- Because the kernel is smaller, it requires in general less modification and is
+more likely to be reliable.
+
+User programs and system services communicate with each other through interprocess
+communication (IPC) mechanisms provided by the kernel.
+
+Disadvantages of the microkernel approach
+- Communication from client programs --> kernel --> userspace system services
+introduces an additional layer. Performance suffers due to the increased overhead
+of IPC associated with nearly all system functions.
