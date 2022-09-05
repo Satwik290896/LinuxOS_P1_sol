@@ -52,8 +52,8 @@ ssize_t output(int fildes, char *s, int strerr) {
 
 static ssize_t input(char **s, size_t *l, int fildes) {
 	ssize_t r;
-	size_t dl = 4096, rl;
-	char *nmp;
+	size_t dl = 4096, rl, tmpl = 0;
+	char *nmp, *tmp;
 
 	if (!*s) {
 redo:
@@ -63,7 +63,6 @@ redo:
 			munmap(*s, *l);
 			*l *= 2;
 		}
-
 		*s = mmap(NULL, *l, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
 		if (((long) *s) < 0) {
 			output(STDERR, "mmap failed: ", 1);
@@ -74,14 +73,29 @@ redo:
 	nmp = *s;
 	rl = *l;
 	memset(*s, 0, *l);
+	if (tmpl != 0) {
+		memcpy(*s, tmp, tmpl);
+		munmap(tmp, tmpl);
+		nmp += tmpl;
+		rl -= tmpl;
+	}
 
 	if ((r = read(fildes, nmp, rl)) < 0)
 		output(STDERR, "read failed: ", 1);
 
-	if (r == rl)
+	if (r == rl) {
+		tmp = mmap(NULL, *l, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+		if (((long) *s) < 0) {
+			output(STDERR, "mmap failed: ", 1);
+			release_all_resources();
+			exit(1);
+		}
+		memcpy(tmp, *s, *l);
+		tmpl = *l;
 		goto redo;
+	}
 
-	return r;
+	return r + tmpl;
 }
 
 static int handle_cd_cmd(int argc, char **argv)
