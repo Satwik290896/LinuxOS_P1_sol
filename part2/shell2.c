@@ -11,7 +11,7 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
-#include "shell.h"
+#include "shell2.h"
 
 #define DELIMS " "
 #define EXECV_ERROR 66
