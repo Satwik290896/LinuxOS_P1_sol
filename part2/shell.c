@@ -56,7 +56,14 @@ static ssize_t input(char **s, size_t *l, int fildes) {
 	char *nmp;
 
 	if (!*s) {
-		*l = dl;
+redo:
+		if (*l == 0) {
+			*l = dl;
+		} else {
+			munmap(*s, *l);
+			*l *= 2;
+		}
+
 		*s = mmap(NULL, *l, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
 		if (((long) *s) < 0) {
 			output(STDERR, "mmap failed: ", 1);
@@ -70,6 +77,9 @@ static ssize_t input(char **s, size_t *l, int fildes) {
 
 	if ((r = read(fildes, nmp, rl)) < 0)
 		output(STDERR, "read failed: ", 1);
+
+	if (r == rl)
+		goto redo;
 
 	return r;
 }
