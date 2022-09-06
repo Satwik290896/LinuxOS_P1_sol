@@ -305,9 +305,6 @@ int main(int argc, char **argv)
 		print_prompt();
 	}
 
-	if (n < 0 && !feof(stdin))
-		output(STDERR, "error: ", 1);
-
 	release_all_resources();
 
 	return 0;
