@@ -158,9 +158,11 @@ static int preprocess_line(char *line, const struct command **cmd_)
 
 	line_dup = logged_strdup(line);
 
-	line_dup_org = line_dup; /* For free(), keep original pointer */
-	if (!line_dup_org)
-		return -1;
+	line_dup_org = line_dup; /* For munmap(), keep original pointer */
+	if (!line_dup_org) {
+		release_all_resources();
+		exit(1);
+	}
 
 	token = strtok(line_dup, DELIMS);
 	if (!token)
@@ -171,7 +173,10 @@ static int preprocess_line(char *line, const struct command **cmd_)
 		*cmd_ = cmd;
 
 cleanup:
-	free(line_dup_org);
+	if (munmap(line_dup_org, strlen(line_dup_org) + 1) < 0) {
+		output(STDERR, "munmap failed: ", 2);
+		exit(1);
+	}
 
 	return 0;
 }

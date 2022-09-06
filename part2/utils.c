@@ -4,15 +4,22 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/mman.h>
 
 ssize_t output(int fildes, char *s, int strerr);
 
 char *logged_strdup(char *str)
 {
-	char *line_dup = strdup(str);
+	char *line_dup;
+	int str_len = strlen(str);
 
-	if (!line_dup)
-		output(STDERR, "error: ", 2);
+	line_dup = mmap(NULL, str_len + 1, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+	if (((long) line_dup) < 0) {
+		output(STDERR, "mmap failed: ", 1);
+		return NULL;
+	}
+	strncpy(line_dup, str, str_len);
+	line_dup[str_len] = '\0';
 
 	return line_dup;
 }

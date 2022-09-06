@@ -6,7 +6,7 @@
 #define STDERR 2
 
 /*
- * Attempts to copy a string and logs if strdup fails.
+ * Attempts to copy a string and logs if fails to allocate memory.
  */
 char *logged_strdup(char *str);
 
