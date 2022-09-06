@@ -53,8 +53,8 @@ ssize_t output(int fildes, char *s, int strerr) {
 static ssize_t input(char **s, size_t *l, int fildes) {
 	int resized;
 	ssize_t r;
-	size_t dl = 4096, rl, tmpl = 0;
-	char *nmp, *tmp;
+	size_t dl = 4096, rl;
+	char *nmp;
 
 	resized = 0;
 	if (!*s) {
