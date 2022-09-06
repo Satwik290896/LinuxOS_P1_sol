@@ -3,18 +3,18 @@ CFLAGS := -Wall -Werror -g
 LDFLAGS :=
 
 
-OBJECTS := shell.o utils.o
+OBJECTS := shell2.o utils.o
 
-all: w4118_sh
+all: w4118_sh2
 
 
-w4118_sh: $(OBJECTS)
+w4118_sh2: $(OBJECTS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(OBJECTS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $^
 
 clean:
-	rm -f w4118_sh *.o
+	rm -f w4118_sh2 *.o
 
 .PHONY: clean

@@ -11,7 +11,7 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
-#include "shell.h"
+#include "shell2.h"
 
 #define DELIMS " "
 #define EXECV_ERROR 66
@@ -53,8 +53,8 @@ ssize_t output(int fildes, char *s, int strerr) {
 static ssize_t input(char **s, size_t *l, int fildes) {
 	int resized;
 	ssize_t r;
-	size_t dl = 4096, rl;
-	char *nmp;
+	size_t dl = 4096, rl, tmpl = 0;
+	char *nmp, *tmp;
 
 	resized = 0;
 //	printf("input\n");
