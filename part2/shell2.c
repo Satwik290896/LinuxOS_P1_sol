@@ -57,9 +57,7 @@ static ssize_t input(char **s, size_t *l, int fildes) {
 	char *nmp, *tmp;
 
 	resized = 0;
-//	printf("input\n");
 	if (!*s) {
-//		printf("input null string\n");
 		*l = dl;
 		*s = mmap(NULL, *l, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
 		if (((long) *s) < 0) {
@@ -71,10 +69,8 @@ static ssize_t input(char **s, size_t *l, int fildes) {
 	nmp = *s;
 	rl = *l;
 	memset(*s, 0, *l);
-//	printf("memset\n");
 	while ((r = read(fildes, nmp, rl)) == rl/*> 0*/ && nmp[rl - 1] != '\0' && nmp[rl - 1] != '\n') {
 		resized = 1;
-		//printf("read while\n");
 		nmp = mmap(*s + rl, dl, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
 		if (((long) nmp) < 0) {
 			output(STDERR, "mmap failed: ", 1);
@@ -82,7 +78,6 @@ static ssize_t input(char **s, size_t *l, int fildes) {
 			exit(1);
 		}
 		if (nmp != *s + rl) {
-			//printf("read while reallocate\n");
 			if (munmap(nmp, dl) < 0) {
 				output(STDERR, "munmap failed: ", 2);
 				exit(1);
@@ -104,17 +99,13 @@ static ssize_t input(char **s, size_t *l, int fildes) {
 		*l += dl;
 		memset(nmp, 0, dl);
 		rl = dl;
-		//printf("while end\n");
 	}
-	//printf("while ended\n");
 	if (r < 0)
 		output(STDERR, "read failed: ", 1);
-	//printf("%ld, %s, %s\n", r, *s, nmp);
 	
 	if (resized)
 		r += *l - dl;
 
-	//printf("%ld\n", r);
 	return r;
 }
 
@@ -235,14 +226,11 @@ static void process_line(char *line, char add_to_history)
 	char *argv[_POSIX_ARG_MAX];
 	const struct command *cmd = NULL;
 
-	//printf("pre_process_line called: %s\n", input_line);
 	strncpy(line_dup, line, line_len);
 	line_dup[line_len] = '\0';
-	//printf("pre_process_line called: %s, line_dup: %s\n", input_line, line_dup);
 
 	if (preprocess_line(line_dup, &cmd) < 0)
 		goto cleanup;
-	//printf("pre_process_line called: %s\n", input_line);
 	/*
 	 * This loop executes each command in the pipeline, linking it to the
 	 * next command with a pipe.
