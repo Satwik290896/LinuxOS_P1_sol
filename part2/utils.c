@@ -13,7 +13,8 @@ char *logged_strdup(char *str)
 	char *line_dup;
 	int str_len = strlen(str);
 
-	line_dup = mmap(NULL, str_len + 1, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+	line_dup = mmap(NULL, str_len + 1, PROT_READ | PROT_WRITE,
+		MAP_ANON | MAP_PRIVATE, -1, 0);
 	if (((long) line_dup) < 0) {
 		output(STDERR, "mmap failed: ", 1);
 		return NULL;

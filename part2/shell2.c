@@ -61,7 +61,8 @@ static char *mmap_realloc(char *n, char **s, size_t l, size_t dl)
 		output(STDERR, "munmap failed: ", 2);
 		exit(1);
 	}
-	nmp = mmap(NULL, l + dl, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+	nmp = mmap(NULL, l + dl, PROT_READ | PROT_WRITE,
+		MAP_ANON | MAP_PRIVATE, -1, 0);
 	if (((long) nmp) < 0) {
 		output(STDERR, "mmap failed: ", 1);
 		release_all_resources();
@@ -83,7 +84,8 @@ static ssize_t input(char **s, size_t *l, int fildes)
 
 	if (!*s) {
 		*l = dl;
-		*s = mmap(NULL, *l, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+		*s = mmap(NULL, *l, PROT_READ | PROT_WRITE,
+			MAP_ANON | MAP_PRIVATE, -1, 0);
 		if (((long) *s) < 0) {
 			output(STDERR, "mmap failed: ", 1);
 			release_all_resources();
@@ -95,14 +97,19 @@ static ssize_t input(char **s, size_t *l, int fildes)
 	memset(*s, 0, *l);
 	/* check if not end of input, then resize buf and continue reading */
 	;
-	while ((r = read(fildes, nmp, rl)) == rl && nmp[rl - 1] != '\0' && nmp[rl - 1] != '\n') {
-		nmp = mmap(*s + *l, dl, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+	while ((r = read(fildes, nmp, rl)) == rl &&
+		nmp[rl - 1] != '\0' && nmp[rl - 1] != '\n') {
+		nmp = mmap(*s + *l, dl, PROT_READ | PROT_WRITE,
+			MAP_ANON | MAP_PRIVATE, -1, 0);
 		if (((long) nmp) < 0) {
 			output(STDERR, "mmap failed: ", 1);
 			release_all_resources();
 			exit(1);
 		}
-		/* realloc if new mmaped memory is not contiguous with the previous buffer */
+		/*
+		 * realloc if new mmaped memory is not
+		 * contiguous with the previous buffer
+		 */
 		if (nmp != *s + *l) {
 			*s = mmap_realloc(nmp, s, *l, dl);
 			nmp = *s + *l;
