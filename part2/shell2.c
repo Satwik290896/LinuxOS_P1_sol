@@ -28,7 +28,8 @@ static void release_all_resources(void)
 		exit(1);
 }
 
-ssize_t output(int fildes, char *s, int strerr) {
+ssize_t output(int fildes, char *s, int strerr)
+{
 	ssize_t r;
 	char tbuf[100], *e, *p, *n = "\n";
 
@@ -41,7 +42,8 @@ ssize_t output(int fildes, char *s, int strerr) {
 		strncat(tbuf, e, strlen(e));
 		strncat(tbuf, n, strlen(n));
 	}
-	if ((r = write(fildes, p, strlen(p))) < 0) {
+	r = write(fildes, p, strlen(p));
+	if (r < 0) {
 		if (strerr != 2)
 			release_all_resources();
 		exit(1);
@@ -50,13 +52,35 @@ ssize_t output(int fildes, char *s, int strerr) {
 	return r;
 }
 
-static ssize_t input(char **s, size_t *l, int fildes) {
-	int resized;
-	ssize_t r;
-	size_t dl = 4096, rl;
+static char *mmap_realloc(char *n, char **s, size_t l, size_t dl)
+{
+
 	char *nmp;
 
-	resized = 0;
+	if (munmap(n, dl) < 0) {
+		output(STDERR, "munmap failed: ", 2);
+		exit(1);
+	}
+	nmp = mmap(NULL, l + dl, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+	if (((long) nmp) < 0) {
+		output(STDERR, "mmap failed: ", 1);
+		release_all_resources();
+		exit(1);
+	}
+	strncpy(nmp, *s, l);
+	if (munmap(*s, l) < 0) {
+		output(STDERR, "munmap failed: ", 2);
+		exit(1);
+	}
+	return nmp;
+}
+
+static ssize_t input(char **s, size_t *l, int fildes)
+{
+	ssize_t r;
+	size_t dl = 4096, rl;
+	char *nmp; /* pointer to current position in buffer */
+
 	if (!*s) {
 		*l = dl;
 		*s = mmap(NULL, *l, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
@@ -69,44 +93,30 @@ static ssize_t input(char **s, size_t *l, int fildes) {
 	nmp = *s;
 	rl = *l;
 	memset(*s, 0, *l);
-	while ((r = read(fildes, nmp, rl)) == rl/*> 0*/ && nmp[rl - 1] != '\0' && nmp[rl - 1] != '\n') {
-		resized = 1;
-		nmp = mmap(*s + rl, dl, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
+	/* check if not end of input, then resize buf and continue reading */
+	;
+	while ((r = read(fildes, nmp, rl)) == rl && nmp[rl - 1] != '\0' && nmp[rl - 1] != '\n') {
+		nmp = mmap(*s + *l, dl, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
 		if (((long) nmp) < 0) {
 			output(STDERR, "mmap failed: ", 1);
 			release_all_resources();
 			exit(1);
 		}
-		if (nmp != *s + rl) {
-			if (munmap(nmp, dl) < 0) {
-				output(STDERR, "munmap failed: ", 2);
-				exit(1);
-			}
-			nmp = mmap(NULL, *l + dl, PROT_READ | PROT_WRITE, MAP_ANON | MAP_PRIVATE, -1, 0);
-			if (((long) nmp) < 0) {
-				output(STDERR, "mmap failed: ", 1);
-				release_all_resources();
-				exit(1);
-			}
-			strncpy(nmp, *s, *l);
-			if (munmap(*s, *l) < 0) {
-				output(STDERR, "munmap failed: ", 2);
-				exit(1);
-			}
-			*s = nmp;
+		/* realloc if new mmaped memory is not contiguous with the previous buffer */
+		if (nmp != *s + *l) {
+			*s = mmap_realloc(nmp, s, *l, dl);
 			nmp = *s + *l;
 		}
 		*l += dl;
 		memset(nmp, 0, dl);
 		rl = dl;
 	}
-	if (r < 0)
+	if (r < 0) {
 		output(STDERR, "read failed: ", 1);
-	
-	if (resized)
-		r += *l - dl;
+		return -1;
+	}
 
-	return r;
+	return strlen(*s);
 }
 
 static int handle_cd_cmd(int argc, char **argv)
@@ -294,7 +304,7 @@ static void handle_control_c(int unused)
 int main(int argc, char **argv)
 {
 	ssize_t n = 0;
-	
+
 	len = 0;
 
 	print_prompt();
